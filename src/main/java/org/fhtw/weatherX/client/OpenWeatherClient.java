@@ -1,6 +1,5 @@
 package org.fhtw.weatherX.client;
 
-import org.apache.tomcat.util.json.JSONParser;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +11,7 @@ import org.fhtw.weatherX.model.WeatherEntity;
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 
 @Controller
@@ -20,10 +20,20 @@ public class OpenWeatherClient {
     private String apiKey;
     @Value("${openweather_api_hostname}")
     private String hostname;
+    @Value("${openweather_latitude}")
+    private String latitude;
+    @Value("${openweather_longitude}")
+    private String longitude;
+    @Value("${openweather_units}")
+    private String units;
+    @Value("${openweather_updateInterval}")
+    private long interval;
 
+    // Should be Trigger for Connect Button
     @EventListener(ApplicationReadyEvent.class)
-    public void runAfterStartup() {
-        connect("50.754702","-2.227907");
+    //ToDO this is the point where the connect button event should be called
+    public void runAfterStartup()  {
+        connect(latitude,longitude);
     }
 
     public void connect(String lat, String lon){
@@ -35,20 +45,25 @@ public class OpenWeatherClient {
         header.append(lon);
         header.append("&appid=");
         header.append(apiKey);
+        header.append("&units=");
+        header.append(units);
         header.append(" HTTP/1.1\r\n");
         header.append("Connection: close\r\n");
         header.append("Host: ");
         header.append(this.hostname+"\r\n");
         header.append("\r\n");
-
-        //System.out.println(header.toString());
+        System.out.println("header from connect: ");
+        System.out.println(header.toString());
 
         try{
-            startConnection(header.toString());
-        }catch(IOException e){
+            while(true){
+                startConnection(header.toString());
+                TimeUnit.MINUTES.sleep(interval);
+            }
+        }catch(IOException|InterruptedException e){
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
     }
 
 
@@ -67,6 +82,7 @@ public class OpenWeatherClient {
             outputStream.close();
             inputStream.close();
             JSONObject jsonObject = new JSONObject(response.substring(response.indexOf("{"), response.lastIndexOf("}") + 1));
+            //ToDo Weather Entity Object has all information to display on main windows after connect button is pressed
             WeatherEntity weatherEntity = new WeatherEntity(
                     jsonObject.getJSONObject("main").get("temp").toString(),
                     jsonObject.get("name").toString(),

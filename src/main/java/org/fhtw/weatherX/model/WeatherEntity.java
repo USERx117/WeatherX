@@ -16,6 +16,8 @@ public class WeatherEntity {
         this.temp_max = temp_max;
     }
 
+    public WeatherEntity() {}
+
     public String getTemperature() {
         return temperature;
     }
